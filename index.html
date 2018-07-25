@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>Inverted Box</title>
+		<title>invertedbox</title>
 		<meta charset="UTF-8">
 		<meta name="description" content="What would you think differently?">
 		<meta name="keywords" content="meta">
@@ -12,14 +12,6 @@
 			@keyframes appear {
 				0% {opacity: 0;}
 				100% {opacity: 1;}
-			}
-			
-			@keyframes hue {
-				0% {background-color: hsl(0, 64%, 50%);}
-				25% {background-color: hsl(90, 64%, 50%);}
-				50% {background-color: hsl(180, 64%, 50%);}
-				75% {background-color: hsl(270, 64%, 50%);}
-				100% {background-color: hsl(360, 64%, 50%);}
 			}
 			
 			div {
@@ -36,54 +28,145 @@
 				div { width:100vw; height:100vw; }
 			}
 			
-			.tile {
-				position:absolute;
-				width:1.7%; height:1.7%;
-				animation-name: hue;
-				animation-duration: 60s;
-				animation-iteration-count: infinite; 
-				animation-timing-function: linear;
+			canvas {
+				image-rendering: optimizeSpeed;
+				image-rendering: pixelated;
+				height:100%;
+				width:100%;
 			}
 			
-			#time .tile { animation-delay: -5s; }
 		</style>
 	</head>
 	<body>
 		<div>
-			<a id="meta" href="http://meta.invertedbox.com">Meta</a>
-			<a id="time" href="http://time.invertedbox.com">Time</a>
+			<a href="http://meta.invertedbox.com">Meta</a>
+			<a href="http://time.invertedbox.com">Time</a>
 		</div>
 		<script>
+			var div = document.getElementsByTagName('div')[0];
+			div.innerHTML = '';
+					
+			function wave(v) {
+				v%=6;
+				if(v < 1) return v;
+				if(v < 3) return 1;
+				if(v < 4) return 4-v;
+				return 0;
+			}
+
+			function hsl2rgb(hue, saturation, lightness) {
+				return {
+					red: wave(hue+2)*saturation + lightness,
+					green: wave(hue)*saturation + lightness,
+					blue: wave(hue+4)*saturation + lightness
+				};
+			}
 			
-			var branches = {
-				'0,255,0': 'meta',
-				'255,0,0': 'time',
+			/* Build a list of objects from table format */
+			function table() {
+				var fields = arguments[0];
+				var records = [];
+				for(var r=1;r<arguments.length;r++) {
+					var record = { index: r-1 };
+					for(var f=0;f<fields.length;f++) {
+						record[fields[f]] = arguments[r][f];
+					}
+					records.push(record);
+				}
+				return records;
+			}
+			
+			/* Build a map from list of objects */
+			function map(table, keyFunction) {
+				var pairs = {};
+				for(var r=0;r<table.length;r++) {
+					pairs[keyFunction(table[r])] = table[r];
+				}
+				return pairs;
+			}
+			
+			var branches = table(
+				['name', 'color', 'link'],
+				['null', '255,255,255', 'http://null.invertedbox.com'],
+				['meta', '0,255,0', 'http://meta.invertedbox.com'],
+				['time', '255,0,0', 'http://time.invertedbox.com'],
+			);
+			
+			var branchesByColor = map(branches, branch => branch.color);
+			
+			var MATRIX_SIZE = 64;
+			
+			var matrix = null;
+			
+			var canvas = document.createElement('canvas');
+			canvas.width = MATRIX_SIZE;
+			canvas.height = MATRIX_SIZE;
+			var context = canvas.getContext('2d');
+			div.appendChild(canvas);
+			
+			var image = new Image(MATRIX_SIZE, MATRIX_SIZE);
+			image.onload = function(){
+				var imageCanvas = document.createElement('canvas');
+				imageCanvas.width = MATRIX_SIZE;
+				imageCanvas.height = MATRIX_SIZE;
+				var imageContext = imageCanvas.getContext('2d');
+				imageContext.drawImage(image, 0, 0, MATRIX_SIZE, MATRIX_SIZE);
+				
+				matrix = [];
+				for(var x=0;x<MATRIX_SIZE;x++) {
+					var row = [];
+					for(var y=0;y<MATRIX_SIZE;y++) {
+						var pixelData = imageContext.getImageData(x, y, 1, 1).data;
+						var branch = branchesByColor[pixelData[0]+','+pixelData[1]+','+pixelData[2]];
+						if(branch != null) {
+							row.push(branch.index);
+						} else {
+							row.push(-1);
+						}
+					}
+					matrix.push(row);
+				}
+				
+				render();
 			};
 			
-			for(var b in branches) document.getElementById(branches[b]).innerHTML = '';
+			var time = 0;
 			
-			var image = new Image(64, 64);
-			image.onload = function(){
-				var canvas = document.createElement('canvas');
-				canvas.width = 64;
-				canvas.height = 64;
-				var context = canvas.getContext('2d');
-				context.drawImage(image, 0, 0, 64, 64);
+			function render() {
+				time += 1/60;
 				
-				for(var x=0;x<64;x++) {
-					for(var y=0;y<64;y++) {
-						var pixelData = context.getImageData(x, y, 1, 1).data;
-						var branch = branches[pixelData[0]+','+pixelData[1]+','+pixelData[2]];
-						if(branch != null) {
-							var tile = document.createElement('div');
-							tile.classList.add('tile');
-							tile.style.left = (x/64*100)+'%';
-							tile.style.top = (y/64*100)+'%';
-							document.getElementById(branch).appendChild(tile);
+				var branchColors = branches.map(branch => hsl2rgb(branch.index/2+time/10, 0.7, 0.3))
+				
+				var imageData = context.getImageData(0, 0, MATRIX_SIZE, MATRIX_SIZE);
+				var i=0;
+				for(var y=0;y<MATRIX_SIZE;y++) {
+					for(var x=0;x<MATRIX_SIZE;x++) {
+						if(matrix[x][y] == 0) {
+							var xo = (x-32)/32;
+							var yo = (y-32)/32;
+							var distance = xo*xo + yo*yo;
+							var lit = 1-distance;
+							imageData.data[i++] = lit*100;
+							imageData.data[i++] = lit*100;
+							imageData.data[i++] = lit*100;
+							imageData.data[i++] = 100;
+						} else if(matrix[x][y] > 0) {
+							var color = branchColors[matrix[x][y]];
+							imageData.data[i++] = color.red*255;
+							imageData.data[i++] = color.green*255;
+							imageData.data[i++] = color.blue*255;
+							imageData.data[i++] = 255;
+						} else {
+							imageData.data[i++] = 0;
+							imageData.data[i++] = 0;
+							imageData.data[i++] = 0;
+							imageData.data[i++] = 0;
 						}
 					}
 				}
-			};
+				context.putImageData(imageData, 0, 0);
+				requestAnimationFrame(render);
+			}
 			
 			image.src = 'layout.png';
 		</script>
