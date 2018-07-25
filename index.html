@@ -1,0 +1,91 @@
+<html>
+	<head>
+		<title>Inverted Box</title>
+		<meta charset="UTF-8">
+		<meta name="description" content="What would you think differently?">
+		<meta name="keywords" content="meta">
+		<meta name="author" content="Lewis Farrant">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			body { background:black; }
+			
+			@keyframes appear {
+				0% {opacity: 0;}
+				100% {opacity: 1;}
+			}
+			
+			@keyframes hue {
+				0% {background-color: hsl(0, 64%, 50%);}
+				25% {background-color: hsl(90, 64%, 50%);}
+				50% {background-color: hsl(180, 64%, 50%);}
+				75% {background-color: hsl(270, 64%, 50%);}
+				100% {background-color: hsl(360, 64%, 50%);}
+			}
+			
+			div {
+				position:absolute;
+				left:50%; top:50%; width:100vh; height:100vh;
+				max-width:800px; max-height:800px;
+				transform:translate(-50%, -50%);
+				
+				animation-name: appear;
+				animation-duration: 5s;
+			}
+			
+			@media (orientation : portrait) {
+				div { width:100vw; height:100vw; }
+			}
+			
+			.tile {
+				position:absolute;
+				width:1.7%; height:1.7%;
+				animation-name: hue;
+				animation-duration: 60s;
+				animation-iteration-count: infinite; 
+				animation-timing-function: linear;
+			}
+			
+			#time .tile { animation-delay: -5s; }
+		</style>
+	</head>
+	<body>
+		<div>
+			<a id="meta" href="http://meta.invertedbox.com">Meta</a>
+			<a id="time" href="http://time.invertedbox.com">Time</a>
+		</div>
+		<script>
+			
+			var branches = {
+				'0,255,0': 'meta',
+				'255,0,0': 'time',
+			};
+			
+			for(var b in branches) document.getElementById(branches[b]).innerHTML = '';
+			
+			var image = new Image(64, 64);
+			image.onload = function(){
+				var canvas = document.createElement('canvas');
+				canvas.width = 64;
+				canvas.height = 64;
+				var context = canvas.getContext('2d');
+				context.drawImage(image, 0, 0, 64, 64);
+				
+				for(var x=0;x<64;x++) {
+					for(var y=0;y<64;y++) {
+						var pixelData = context.getImageData(x, y, 1, 1).data;
+						var branch = branches[pixelData[0]+','+pixelData[1]+','+pixelData[2]];
+						if(branch != null) {
+							var tile = document.createElement('div');
+							tile.classList.add('tile');
+							tile.style.left = (x/64*100)+'%';
+							tile.style.top = (y/64*100)+'%';
+							document.getElementById(branch).appendChild(tile);
+						}
+					}
+				}
+			};
+			
+			image.src = 'layout.png';
+		</script>
+	</body>
+</html>
