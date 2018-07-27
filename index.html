@@ -1,313 +1,313 @@
 <html>
-	<head>
-		<title>invertedbox</title>
-		<meta charset="UTF-8">
-		<meta name="description" content="What would you think differently?">
-		<meta name="keywords" content="meta">
-		<meta name="author" content="Lewis Farrant">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<style>
-			body { background:black; }
-			
-			* {
-				font-family:Arial, Helvetica, sans-serif;
-				color:white;
-			}
-			
-			@keyframes appear {
-				0% {opacity: 0;}
-				100% {opacity: 1;}
-			}
-			
-			div {
-				position:absolute;
-				left:50%; top:50%; width:100vh; height:100vh;
-				transform:translate(-50%, -50%);
-				
-				text-align: center;
-				
-				animation-name: appear;
-				animation-duration: 5s;
-			}
-			
-			@media (orientation : portrait) {
-				div { width:100vw; height:100vw; }
-			}
-			
-			canvas {
-				image-rendering: optimizeSpeed;
-				image-rendering: pixelated;
-				height:100%;
-				width:100%;
-			}
-			
-		</style>
-	</head>
-	<body>
-		<div>
-			<p>Don't worry. I don't like javascript either.</p>
-			<a href="http://meta.invertedbox.com">Meta</a>
-			<a href="http://time.invertedbox.com">Time</a>
-		</div>
-		<script>
-			
-			var MATRIX_SIZE = 128;
-			var BOX_SIZE = 34;
-			
-			var branches = table2list(
-				['name', 'color', 'link'],
-				['null', '255,255,255', 'http://null.invertedbox.com'],
-				['meta', '0,255,0', 'http://meta.invertedbox.com'],
-				['time', '255,0,0', 'http://time.invertedbox.com'],
-			);
-			var branchesByColor = list2map(branches, branch => branch.color);
-			
-			var visualMatrix = null;
-			
-			var time = 0;
-			var offset = Math.random()*6;
-			
-			var canvas = document.createElement('canvas');
-			canvas.width = MATRIX_SIZE;
-			canvas.height = MATRIX_SIZE;
-			var context = canvas.getContext('2d');
-			
-			var div = document.getElementsByTagName('div')[0];
-			div.innerHTML = '';
-			div.appendChild(canvas);
-			
-			var image = new Image(MATRIX_SIZE, MATRIX_SIZE);
-			image.onload = function(){
-				var imageCanvas = document.createElement('canvas');
-				imageCanvas.width = MATRIX_SIZE;
-				imageCanvas.height = MATRIX_SIZE;
-				var imageContext = imageCanvas.getContext('2d');
-				imageContext.drawImage(image, 0, 0, MATRIX_SIZE, MATRIX_SIZE);
-				
-				visualMatrix = [];
-				for(var x=0;x<MATRIX_SIZE;x++) {
-					var row = [];
-					for(var y=0;y<MATRIX_SIZE;y++) {
-						var pixelData = imageContext.getImageData(x, y, 1, 1).data;
-						var branch = branchesByColor[pixelData[0]+','+pixelData[1]+','+pixelData[2]];
-						if(branch != null) {
-							row.push(branch.index);
-						} else {
-							row.push(-1);
-						}
-					}
-					visualMatrix.push(row);
-				}
-				
-				loop();
-			};
-			image.src = 'layout.png';
-			
-			/*
-				Step 1: Do step 1.
-			*/
-			function loop() {
-				time += 1/60;
-				
-				// Start off with lots of noise
-				if(time < 5)
-					for(var x=1;x<MATRIX_SIZE-1;x++) {
-						for(var y=1;y<MATRIX_SIZE-1;y++) {
-							if(isDynamic(x,y)) {
-								if (Math.random() > time/5) {
-									visualMatrix[x][y] = (Math.random() > 0.5) ? 0 : -1;
-								}
-							}
-						}
-					}
-				
-				// Over time start following a pattern.
-				for(var i=0;i<100;i++) {
-					var x = Math.floor(Math.random()*MATRIX_SIZE);
-					var y = Math.floor(Math.random()*MATRIX_SIZE);
-					decorrupt(x, y);
-				}
-				
-				// Render the visual matrix with my favorite color
-				var branchColors = branches.map(branch => hsl2rgb(branch.index/2+time/10+offset, 0.7, 0.3));
-				
-				var imageData = context.getImageData(0, 0, MATRIX_SIZE, MATRIX_SIZE);
-				var i=0;
-				for(var y=0;y<MATRIX_SIZE;y++) {
-					for(var x=0;x<MATRIX_SIZE;x++) {
-						if(visualMatrix[x][y] == 0) { // Render wires
-							var xo = (x-64)/64;
-							var yo = (y-64)/64;
-							var distance = xo*xo + yo*yo;
-							var lit = 1-distance;
-							imageData.data[i++] = lit*100;
-							imageData.data[i++] = lit*100;
-							imageData.data[i++] = lit*100;
-							imageData.data[i++] = 100;
-						} else if(visualMatrix[x][y] > 0) { // Render text
-							var color = branchColors[visualMatrix[x][y]];
-							imageData.data[i++] = color.red*255;
-							imageData.data[i++] = color.green*255;
-							imageData.data[i++] = color.blue*255;
-							imageData.data[i++] = 255;
-						} else { // Render null
-							imageData.data[i++] = 0;
-							imageData.data[i++] = 0;
-							imageData.data[i++] = 0;
-							imageData.data[i++] = 0;
-						}
-					}
-				}
-				context.putImageData(imageData, 0, 0);
-				requestAnimationFrame(loop);
-			}
-			
-			/*             __    __
-				Creates a /  \__/  \__
-			*/
-			function wave(v) {
-				v%=6;
-				if(v < 1) return v;
-				if(v < 3) return 1;
-				if(v < 4) return 4-v;
-				return 0;
-			}
+  <head>
+    <title>invertedbox</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="What would you think differently?">
+    <meta name="keywords" content="meta">
+    <meta name="author" content="Lewis Farrant">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body { background:black; }
+      
+      * {
+        font-family:Arial, Helvetica, sans-serif;
+        color:white;
+      }
+      
+      @keyframes appear {
+        0% {opacity: 0;}
+        100% {opacity: 1;}
+      }
+      
+      div {
+        position:absolute;
+        left:50%; top:50%; width:100vh; height:100vh;
+        transform:translate(-50%, -50%);
+        
+        text-align: center;
+        
+        animation-name: appear;
+        animation-duration: 5s;
+      }
+      
+      @media (orientation : portrait) {
+        div { width:100vw; height:100vw; }
+      }
+      
+      canvas {
+        image-rendering: optimizeSpeed;
+        image-rendering: pixelated;
+        height:100%;
+        width:100%;
+      }
+      
+    </style>
+  </head>
+  <body>
+    <div>
+      <p>Don't worry. I don't like javascript either.</p>
+      <a href="http://meta.invertedbox.com">Meta</a>
+      <a href="http://time.invertedbox.com">Time</a>
+    </div>
+    <script>
+      
+      var MATRIX_SIZE = 128;
+      var BOX_SIZE = 34;
+      
+      var branches = table2list(
+        ['name', 'color', 'link'],
+        ['null', '255,255,255', 'http://null.invertedbox.com'],
+        ['meta', '0,255,0', 'http://meta.invertedbox.com'],
+        ['time', '255,0,0', 'http://time.invertedbox.com'],
+      );
+      var branchesByColor = list2map(branches, branch => branch.color);
+      
+      var visualMatrix = null;
+      
+      var time = 0;
+      var offset = Math.random()*6;
+      
+      var canvas = document.createElement('canvas');
+      canvas.width = MATRIX_SIZE;
+      canvas.height = MATRIX_SIZE;
+      var context = canvas.getContext('2d');
+      
+      var div = document.getElementsByTagName('div')[0];
+      div.innerHTML = '';
+      div.appendChild(canvas);
+      
+      var image = new Image(MATRIX_SIZE, MATRIX_SIZE);
+      image.onload = function(){
+        var imageCanvas = document.createElement('canvas');
+        imageCanvas.width = MATRIX_SIZE;
+        imageCanvas.height = MATRIX_SIZE;
+        var imageContext = imageCanvas.getContext('2d');
+        imageContext.drawImage(image, 0, 0, MATRIX_SIZE, MATRIX_SIZE);
+        
+        visualMatrix = [];
+        for(var x=0;x<MATRIX_SIZE;x++) {
+          var row = [];
+          for(var y=0;y<MATRIX_SIZE;y++) {
+            var pixelData = imageContext.getImageData(x, y, 1, 1).data;
+            var branch = branchesByColor[pixelData[0]+','+pixelData[1]+','+pixelData[2]];
+            if(branch != null) {
+              row.push(branch.index);
+            } else {
+              row.push(-1);
+            }
+          }
+          visualMatrix.push(row);
+        }
+        
+        loop();
+      };
+      image.src = 'layout.png';
+      
+      /*
+        Step 1: Do step 1.
+      */
+      function loop() {
+        time += 1/60;
+        
+        // Start off with lots of noise
+        if(time < 5)
+          for(var x=1;x<MATRIX_SIZE-1;x++) {
+            for(var y=1;y<MATRIX_SIZE-1;y++) {
+              if(isDynamic(x,y)) {
+                if (Math.random() > time/5) {
+                  visualMatrix[x][y] = (Math.random() > 0.5) ? 0 : -1;
+                }
+              }
+            }
+          }
+        
+        // Over time start following a pattern.
+        for(var i=0;i<100;i++) {
+          var x = Math.floor(Math.random()*MATRIX_SIZE);
+          var y = Math.floor(Math.random()*MATRIX_SIZE);
+          decorrupt(x, y);
+        }
+        
+        // Render the visual matrix with my favorite color
+        var branchColors = branches.map(branch => hsl2rgb(branch.index/2+time/10+offset, 0.7, 0.3));
+        
+        var imageData = context.getImageData(0, 0, MATRIX_SIZE, MATRIX_SIZE);
+        var i=0;
+        for(var y=0;y<MATRIX_SIZE;y++) {
+          for(var x=0;x<MATRIX_SIZE;x++) {
+            if(visualMatrix[x][y] == 0) { // Render wires
+              var xo = (x-64)/64;
+              var yo = (y-64)/64;
+              var distance = xo*xo + yo*yo;
+              var lit = 1-distance;
+              imageData.data[i++] = lit*100;
+              imageData.data[i++] = lit*100;
+              imageData.data[i++] = lit*100;
+              imageData.data[i++] = 100;
+            } else if(visualMatrix[x][y] > 0) { // Render text
+              var color = branchColors[visualMatrix[x][y]];
+              imageData.data[i++] = color.red*255;
+              imageData.data[i++] = color.green*255;
+              imageData.data[i++] = color.blue*255;
+              imageData.data[i++] = 255;
+            } else { // Render null
+              imageData.data[i++] = 0;
+              imageData.data[i++] = 0;
+              imageData.data[i++] = 0;
+              imageData.data[i++] = 0;
+            }
+          }
+        }
+        context.putImageData(imageData, 0, 0);
+        requestAnimationFrame(loop);
+      }
 
-			/*
-				Makes pretty colors.
-			*/
-			function hsl2rgb(hue, saturation, lightness) {
-				return {
-					red: wave(hue+2)*saturation + lightness,
-					green: wave(hue)*saturation + lightness,
-					blue: wave(hue+4)*saturation + lightness
-				};
-			}
-			
-			/*
-				Build a list of objects from table format
-			*/
-			function table2list() {
-				var fields = arguments[0];
-				var records = [];
-				for(var r=1;r<arguments.length;r++) {
-					var record = { index: r-1 };
-					for(var f=0;f<fields.length;f++) {
-						record[fields[f]] = arguments[r][f];
-					}
-					records.push(record);
-				}
-				return records;
-			}
-			
-			/*
-				Build a map from list of objects using key
-			*/
-			function list2map(table, keyFunction) {
-				var pairs = {};
-				for(var r=0;r<table.length;r++) {
-					pairs[keyFunction(table[r])] = table[r];
-				}
-				return pairs;
-			}
-			
-			/*
-				Like substring for matrices.
-			*/
-			function subMatrix(matrix, x, y, w, h) {
-				var newMatrix = [];
-				for(var xo=0;xo<w;xo++) {
-					newMatrix[xo] = [];
-					for(var yo=0;yo<h;yo++) {
-						newMatrix[xo][yo] = matrix[x+xo][y+yo];
-					}
-				}
-				return newMatrix;
-			}
-			
-			/*
-				Check to see if the point can be flipped.
-			*/
-			function isDynamic(x, y) {
-				return (
-					   x != 0
-					&& x != MATRIX_SIZE-1
-					&& y != 0
-					&& y != MATRIX_SIZE-1
-					&& (x <  MATRIX_SIZE/2 - BOX_SIZE/2
-					 || x >= MATRIX_SIZE/2 + BOX_SIZE/2
-					 || y <  MATRIX_SIZE/2 - BOX_SIZE/2
-					 || y >= MATRIX_SIZE/2 + BOX_SIZE/2)
-					&& visualMatrix[x-1][y-1] <= 0
-					&& visualMatrix[x-1][y  ] <= 0
-					&& visualMatrix[x-1][y+1] <= 0
-					&& visualMatrix[x  ][y-1] <= 0
-					&& visualMatrix[x  ][y  ] <= 0
-					&& visualMatrix[x  ][y+1] <= 0
-					&& visualMatrix[x+1][y-1] <= 0
-					&& visualMatrix[x+1][y  ] <= 0
-					&& visualMatrix[x+1][y+1] <= 0)
-			}
-			
-			/*
-				Checks a 2x2 square in the visual matrix to see if it is corrupt.
-			*/
-			function isCorrupted(matrix, x, y) {
-				var tl = matrix[x  ][y  ];
-				var tr = matrix[x+1][y  ];
-				var bl = matrix[x  ][y+1];
-				var br = matrix[x+1][y+1];
-				
-				// O O
-				// O O
-				if(tl == tr && bl == br && tl == bl) 
-					return true;
-					
-				// O X
-				// X O
-				if(tl == br && tr == bl && tl != tr)
-					return true;
-					
-				return false;
-			}
-			
-			/*
-				Counts the number of 2x2s that are corrupted in matrix
-			*/
-			function corruptionCount(matrix) {
-				var count = 0;
-				for(var x=0;x<matrix.length-1;x++) {
-					for(var y=0;y<matrix[x].length-1;y++) {
-						if(isCorrupted(matrix, x, y))
-							count++;
-					}
-				}
-				return count;
-			}
-			
-			/*
-				null <--> wire
-			*/
-			function flip(matrix, x, y) {
-				matrix[x][y] = -matrix[x][y]-1;
-			}
-			
-			/*
-				Flips if it lowers corruption
-			*/
-			function decorrupt(x, y) {
-				if(isDynamic(x, y)) {
-					var affectedMatrix = subMatrix(visualMatrix, x-1, y-1, 3, 3);
-					
-					var before = corruptionCount(affectedMatrix);
-					flip(affectedMatrix, 1, 1);
-					var after = corruptionCount(affectedMatrix);
-					
-					if(after <= before)
-						flip(visualMatrix, x, y);
-				}
-			}
-			
-		</script>
-	</body>
+      /*           __    __
+        Creates a /  \__/  \__
+      */
+      function wave(v) {
+        v%=6;
+        if(v < 1) return v;
+        if(v < 3) return 1;
+        if(v < 4) return 4-v;
+        return 0;
+      }
+
+      /*
+        Makes pretty colors.
+      */
+      function hsl2rgb(hue, saturation, lightness) {
+        return {
+          red: wave(hue+2)*saturation + lightness,
+          green: wave(hue)*saturation + lightness,
+          blue: wave(hue+4)*saturation + lightness
+        };
+      }
+      
+      /*
+        Build a list of objects from table format
+      */
+      function table2list() {
+        var fields = arguments[0];
+        var records = [];
+        for(var r=1;r<arguments.length;r++) {
+          var record = { index: r-1 };
+          for(var f=0;f<fields.length;f++) {
+            record[fields[f]] = arguments[r][f];
+          }
+          records.push(record);
+        }
+        return records;
+      }
+      
+      /*
+        Build a map from list of objects using key
+      */
+      function list2map(table, keyFunction) {
+        var pairs = {};
+        for(var r=0;r<table.length;r++) {
+          pairs[keyFunction(table[r])] = table[r];
+        }
+        return pairs;
+      }
+      
+      /*
+        Like substring for matrices.
+      */
+      function subMatrix(matrix, x, y, w, h) {
+        var newMatrix = [];
+        for(var xo=0;xo<w;xo++) {
+          newMatrix[xo] = [];
+          for(var yo=0;yo<h;yo++) {
+            newMatrix[xo][yo] = matrix[x+xo][y+yo];
+          }
+        }
+        return newMatrix;
+      }
+      
+      /*
+        Check to see if the point can be flipped.
+      */
+      function isDynamic(x, y) {
+        return (
+             x != 0
+          && x != MATRIX_SIZE-1
+          && y != 0
+          && y != MATRIX_SIZE-1
+          && (x <  MATRIX_SIZE/2 - BOX_SIZE/2
+           || x >= MATRIX_SIZE/2 + BOX_SIZE/2
+           || y <  MATRIX_SIZE/2 - BOX_SIZE/2
+           || y >= MATRIX_SIZE/2 + BOX_SIZE/2)
+          && visualMatrix[x-1][y-1] <= 0
+          && visualMatrix[x-1][y  ] <= 0
+          && visualMatrix[x-1][y+1] <= 0
+          && visualMatrix[x  ][y-1] <= 0
+          && visualMatrix[x  ][y  ] <= 0
+          && visualMatrix[x  ][y+1] <= 0
+          && visualMatrix[x+1][y-1] <= 0
+          && visualMatrix[x+1][y  ] <= 0
+          && visualMatrix[x+1][y+1] <= 0)
+      }
+      
+      /*
+        Checks a 2x2 square in the visual matrix to see if it is corrupt.
+      */
+      function isCorrupted(matrix, x, y) {
+        var tl = matrix[x  ][y  ];
+        var tr = matrix[x+1][y  ];
+        var bl = matrix[x  ][y+1];
+        var br = matrix[x+1][y+1];
+        
+        // O O
+        // O O
+        if(tl == tr && bl == br && tl == bl) 
+          return true;
+          
+        // O X
+        // X O
+        if(tl == br && tr == bl && tl != tr)
+          return true;
+          
+        return false;
+      }
+      
+      /*
+        Counts the number of 2x2s that are corrupted in matrix
+      */
+      function corruptionCount(matrix) {
+        var count = 0;
+        for(var x=0;x<matrix.length-1;x++) {
+          for(var y=0;y<matrix[x].length-1;y++) {
+            if(isCorrupted(matrix, x, y))
+              count++;
+          }
+        }
+        return count;
+      }
+      
+      /*
+        null <--> wire
+      */
+      function flip(matrix, x, y) {
+        matrix[x][y] = -matrix[x][y]-1;
+      }
+      
+      /*
+        Flips if it lowers corruption
+      */
+      function decorrupt(x, y) {
+        if(isDynamic(x, y)) {
+          var affectedMatrix = subMatrix(visualMatrix, x-1, y-1, 3, 3);
+          
+          var before = corruptionCount(affectedMatrix);
+          flip(affectedMatrix, 1, 1);
+          var after = corruptionCount(affectedMatrix);
+          
+          if(after <= before)
+            flip(visualMatrix, x, y);
+        }
+      }
+      
+    </script>
+  </body>
 </html>
